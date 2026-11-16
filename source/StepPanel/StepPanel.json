@@ -1,0 +1,10 @@
+{
+  "Author": "Codex",
+  "Name": "Step Panel",
+  "InternalName": "StepPanel",
+  "AssemblyVersion": "0.10.2.0",
+  "DalamudApiLevel": 15,
+  "ApplicableVersion": "any",
+  "Punchline": "Daily steps, queue games, and collectible prints.",
+  "Description": "Earn 100 Nackle Coins for 10,000 steps per local day. Play in Nix's Den and collect 57 prints in Nix's Album. /steppanel toggles the panel; /steppanel den opens the Den."
+}

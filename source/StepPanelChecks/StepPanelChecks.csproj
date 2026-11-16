@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\StepPanel\Minigames.cs" Link="Minigames.cs" />
+    <Compile Include="..\StepPanel\VaultMaze.cs" Link="VaultMaze.cs" />
+    <Compile Include="..\StepPanel\AlbumCatalog.cs" Link="AlbumCatalog.cs" />
+    <Compile Include="..\StepPanel\ArcadeGames.cs" Link="ArcadeGames.cs" />
+    <Compile Include="..\StepPanel\FishingCast.cs" Link="FishingCast.cs" />
+    <Compile Include="..\StepPanel\CupShuffle.cs" Link="CupShuffle.cs" />
+    <Compile Include="..\StepPanel\RugCycle.cs" Link="RugCycle.cs" />
+    <Compile Include="..\StepPanel\Errands.cs" Link="Errands.cs" />
+    <Compile Include="..\StepPanel\MemoryRound.cs" Link="MemoryRound.cs" />
+    <Compile Include="..\StepPanel\GameExperience.cs" Link="GameExperience.cs" />
+  </ItemGroup>
+</Project>

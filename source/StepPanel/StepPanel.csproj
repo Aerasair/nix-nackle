@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>enable</Nullable>
+    <Version>0.10.2</Version>
+    <DalamudPath Condition="'$(DalamudPath)' == '' and '$(DALAMUD_HOME)' != ''">$(DALAMUD_HOME)</DalamudPath>
+    <DalamudPath Condition="'$(DalamudPath)' == ''">$(APPDATA)\XIVLauncher\addon\Hooks\dev</DalamudPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Dalamud" HintPath="$(DalamudPath)\Dalamud.dll" Private="false" />
+    <Reference Include="Dalamud.Bindings.ImGui" HintPath="$(DalamudPath)\Dalamud.Bindings.ImGui.dll" Private="false" />
+    <None Update="StepPanel.json" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Assets\nix-nackle.png" LogicalName="StepPanel.NixNackle.png" />
+    <EmbeddedResource Include="Assets\Prints\*.jpg" LogicalName="StepPanel.Prints.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets\GameArt\*.png;Assets\GameArt\*.jpg" LogicalName="StepPanel.GameArt.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Target Name="CheckDalamudPath" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(DalamudPath)\Dalamud.dll')"
+           Text="Set DALAMUD_HOME or pass -p:DalamudPath to point to the Dalamud API 15 assemblies." />
+  </Target>
+</Project>
