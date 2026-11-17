@@ -3,15 +3,16 @@
 Nix Nackle is a small **Final Fantasy XIV** plugin for Dalamud. It adds a movable step tracker and opens **Nix’s Den**, a backroom run by a suspicious Lalafell merchant. Dalamud lists the plugin as **Step Panel**.
 
 - **Daily steps.** Earn 100 Nackle Coins for reaching 10,000 steps in a local calendar day.
-- **Games for the duty queue.** Play Tic-Tac-Toe, Aetherlight, Shell Game, the Sil’dihn Labyrinth, Aether Ascent, Chocobo Courier, Fishing, or Memory.
-- **Spend coins.** Open a seal for a chance at an illustration, or set Nix’s brush to work in Rug Spa. The album contains 57 illustrations. Use the arrows above an open print to move between unlocked illustrations.
+- **Games for the duty queue.** Play Tic-Tac-Toe, Aetherlight, Shell Game, the Sil’dihn Labyrinth, Fishing, Memory, or Aether Sort. Aether Sort offers three difficulties, unlimited moves, and an undo button.
+- **Endless arcade runs.** Jump over crates and stay low under gates as Chocobo Courier speeds up. In Aether Ascent, hold the left mouse button on either half of the playfield to steer and release it to brake. Dodge red crystals and keep ahead of the rising screen.
+- **Spend coins.** A seal costs 100 Nackle Coins and has a 50% chance to reveal a new illustration. Rug Spa charges one coin per rug. The album contains 57 illustrations. Use the arrows above an open print to move between unlocked illustrations.
 - **Profile.** Each minigame has a separate level up to 110. Earn 100 XP per coin won in that game. Rug Spa grants 100 XP per paid rug after cleaning finishes.
 
 [addon/](addon/) contains the ready-to-use plugin files. [source/](source/) contains the C# projects, artwork, and regression checks.
 
 ## Install in Dalamud
 
-Version **0.11.2** targets **Dalamud API 15**.
+Version **0.13.0** targets **Dalamud API 15**.
 
 1. Download this repository via **Code → Download ZIP**, then extract it to a folder you plan to keep. To share the plugin, send the whole `addon` folder.
 2. In FFXIV, run `/xlsettings` and open **Experimental → Dev Plugin Locations**.

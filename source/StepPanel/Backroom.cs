@@ -31,11 +31,12 @@ internal sealed class Backroom
     private readonly ShellGame shellGame;
     private readonly MemoryCards memory;
     private readonly RugSpa rugSpa;
+    private readonly AetherSortView aetherSort;
     private volatile bool openRequested;
     private bool isOpen;
     private int selectedTab;
     private static readonly string[] Tabs =
-        ["Profile", "Gacha", "Tic-Tac-Toe", "Aetherlight", "Shell Game", "Vault", "Aether Ascent", "Chocobo Courier", "Fishing", "Memory", "Rug Spa"];
+        ["Profile", "Gacha", "Tic-Tac-Toe", "Aetherlight", "Shell Game", "Vault", "Aether Ascent", "Chocobo Courier", "Fishing", "Memory", "Rug Spa", "Aether Sort"];
 
     public Backroom(Progress progress, ITextureProvider textures)
     {
@@ -49,6 +50,7 @@ internal sealed class Backroom
         fishing = new FishingSpot(progress, artwork);
         memory = new MemoryCards(progress, artwork);
         rugSpa = new RugSpa(progress, artwork);
+        aetherSort = new AetherSortView(progress, artwork);
         shellGame = new ShellGame(progress, artwork);
     }
 
@@ -143,6 +145,7 @@ internal sealed class Backroom
             case 8: fishing.Draw(unit); break;
             case 9: memory.Draw(unit); break;
             case 10: rugSpa.Draw(unit); break;
+            case 11: aetherSort.Draw(unit); break;
         }
     }
 

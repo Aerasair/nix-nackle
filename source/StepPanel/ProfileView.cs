@@ -20,6 +20,7 @@ internal static class ProfileView
     [
         new(DenGame.Aetherlight, "Aetherlight", "crystal.png"),
         new(DenGame.Vault, "Vault", "chest.png"),
+        new(DenGame.AetherSort, "Aether Sort", "lantern.png"),
     ]);
 
     private static readonly Section Arcade = new("Arcade", 0xff89a9df, 0xff453347,

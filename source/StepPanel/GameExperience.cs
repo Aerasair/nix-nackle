@@ -13,6 +13,7 @@ public enum DenGame
     Fishing,
     Memory,
     RugSpa,
+    AetherSort,
 }
 
 public sealed class GameExperience
@@ -38,7 +39,7 @@ internal static class GameLevels
     public static int CoinGoal(DenGame game) => game switch
     {
         DenGame.TicTacToe => 900,
-        DenGame.Memory => 1_200,
+        DenGame.Memory or DenGame.AetherSort => 1_200,
         DenGame.Fishing or DenGame.RugSpa => 750,
         _ => 1_500,
     };

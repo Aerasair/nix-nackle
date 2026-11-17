@@ -89,7 +89,7 @@ internal sealed class Progress
     public const int DailyGoal = 10_000;
     public const int DailyReward = 100;
     public const int ArtCount = AlbumCatalog.Count;
-    public const int PullPrice = 50;
+    public const int PullPrice = 100;
     public const int FishingDailyLimit = 20;
     public const ulong CompleteAlbum = (1UL << ArtCount) - 1;
     private const long SaveIntervalMs = 10_000;

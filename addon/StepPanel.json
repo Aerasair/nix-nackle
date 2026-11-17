@@ -2,7 +2,7 @@
   "Author": "Codex",
   "Name": "Step Panel",
   "InternalName": "StepPanel",
-  "AssemblyVersion": "0.11.2.0",
+  "AssemblyVersion": "0.13.0.0",
   "DalamudApiLevel": 15,
   "ApplicableVersion": "any",
   "Punchline": "Daily steps, queue games, and collectible prints.",

@@ -16,5 +16,6 @@
     <Compile Include="..\StepPanel\Errands.cs" Link="Errands.cs" />
     <Compile Include="..\StepPanel\MemoryRound.cs" Link="MemoryRound.cs" />
     <Compile Include="..\StepPanel\GameExperience.cs" Link="GameExperience.cs" />
+    <Compile Include="..\StepPanel\AetherSort.cs" Link="AetherSort.cs" />
   </ItemGroup>
 </Project>

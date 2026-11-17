@@ -23,14 +23,14 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
     public void Draw(float unit)
     {
         ImGui.TextWrapped(isCourier
-            ? "Left-click the field to jump over cargo crates."
-            : "Nix bounces on his own. Left-click the field to steer him toward that spot.");
+            ? "Left-click to jump over crates. Stay low under overhead gates. The trail keeps speeding up."
+            : "Nix bounces on his own. Hold left-click on either half to steer that way. Release to brake. Avoid red crystals and stay ahead of the rising screen.");
 
         if (!active && ImGui.Button("Start (free)"))
             Start();
 
         DrawField(unit);
-        ImGui.TextUnformatted(isCourier ? $"Crates cleared: {Score}" : $"Highest platform: {Score}");
+        ImGui.TextUnformatted(isCourier ? $"Obstacles cleared: {Score}" : $"Highest platform: {Score}");
         if (payout is { } reward)
             ImGui.TextColored(reward > 0 ? Jade : Gold, $"Run over. Payout: {reward} coins.");
         if (active)
@@ -39,7 +39,7 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
                 Finish();
         }
 
-        ImGui.TextWrapped("Payouts: 12 = 3, 20 = 5, 30 = 7, 45 = 10 coins. The run ends at 45.");
+        ImGui.TextWrapped("Payouts: 12 = 3, 20 = 5, 30 = 7, 45+ = 10 coins.");
     }
 
     private void Start()
@@ -70,12 +70,20 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
         var origin = ImGui.GetCursorScreenPos();
         var size = new Vector2(width, height * scale);
         ImGui.InvisibleButton("Arcade field", size);
-        if (active && ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+        var overField = ImGui.IsItemHovered();
+        if (active)
         {
             if (isCourier)
-                courier.Jump();
+            {
+                if (overField && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    courier.Jump();
+            }
             else
-                ascent.Aim((ImGui.GetMousePos().X - origin.X) / scale);
+            {
+                var held = overField && ImGui.IsMouseDown(ImGuiMouseButton.Left);
+                var right = ImGui.GetMousePos().X >= origin.X + width / 2;
+                ascent.Steer(held ? right ? 1 : -1 : 0);
+            }
         }
 
         var frame = ImGui.GetFrameCount();
@@ -111,8 +119,19 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
             var y = AetherAscent.Height + camera - platform.Y;
             if (y < -12 || y > AetherAscent.Height)
                 continue;
-            var half = AetherAscent.PlatformWidth / 2;
+            var half = platform.Width / 2;
             artwork.Stretch(c.Draw, "ledge.png", c.Point(platform.X - half, y), c.Point(platform.X + half, y + 15));
+        }
+
+        foreach (var hazard in ascent.Hazards)
+        {
+            var y = AetherAscent.Height + camera - hazard.Y;
+            if (y < -20 || y > AetherAscent.Height + 20)
+                continue;
+            var point = c.Point(hazard.X(ascent.Time), y);
+            c.Draw.AddCircleFilled(point, 14 * c.Scale, 0x685148ff);
+            c.Draw.AddCircle(point, 13 * c.Scale, 0xb45771ff);
+            artwork.Sprite(c.Draw, "crystal.png", point, new Vector2(20, 32) * c.Scale, tint: 0xff888dff);
         }
 
         var foot = AetherAscent.Height + camera - ascent.Y;
@@ -120,6 +139,9 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
         if (ascent.Platforms.Count == 0)
             foot -= 18;
         artwork.Sprite(c.Draw, "jump.png", c.Point(px, foot), new Vector2(36, 42) * c.Scale, bottom: true);
+        c.Draw.AddLine(c.Point(Width / 2, AetherAscent.Height - 17), c.Point(Width / 2, AetherAscent.Height - 4), 0x66eeeeee);
+        c.Draw.AddText(c.Point(7, AetherAscent.Height - 18), 0xbbeeeeee, "<");
+        c.Draw.AddText(c.Point(Width - 16, AetherAscent.Height - 18), 0xbbeeeeee, ">");
     }
 
     private void DrawCourier(Canvas c)
@@ -131,13 +153,21 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
             var x = i * 36 - courier.Distance % 36;
             c.Rect(x, 172, x + 16, 173, 0x50806232);
         }
-        foreach (var crate in courier.Crates)
+        foreach (var obstacle in courier.Obstacles)
         {
-            if (crate.X > Width)
+            if (obstacle.X > Width)
                 continue;
-            var min = c.Point(crate.X, ChocoboCourier.Ground - crate.Height);
-            var max = c.Point(crate.X + crate.Width, ChocoboCourier.Ground);
-            artwork.Stretch(c.Draw, "crate.png", min, max);
+            var bottom = ChocoboCourier.Ground - (obstacle.Overhead ? 60 : 0);
+            var min = c.Point(obstacle.X, bottom - obstacle.Height);
+            var max = c.Point(obstacle.X + obstacle.Width, bottom);
+            artwork.Stretch(c.Draw, "crate.png", min, max, obstacle.Overhead ? 0xff84c5ff : uint.MaxValue);
+            if (obstacle.Overhead)
+            {
+                c.Draw.AddLine(c.Point(obstacle.X + 3, 0), min + new Vector2(3 * c.Scale, 0), 0xff434756, 2);
+                c.Draw.AddLine(c.Point(obstacle.X + obstacle.Width - 3, 0),
+                    c.Point(obstacle.X + obstacle.Width - 3, bottom - obstacle.Height), 0xff434756, 2);
+                c.Draw.AddLine(c.Point(obstacle.X, bottom), max, 0xff67cbff, 2);
+            }
         }
 
         var px = ChocoboCourier.RiderX;

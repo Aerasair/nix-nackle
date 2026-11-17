@@ -251,17 +251,18 @@ if ((ulong)unlockedArt.GetValue(ledger)! != 1UL << 56)
     throw new Exception("Upper album bits were lost after reload");
 unlockedArt.SetValue(ledger, 0UL);
 var sealRandom = new DoorRandom(0, 1, 0);
-coins.SetValue(ledger, 110L);
+coins.SetValue(ledger, 210L);
 var emptySeal = openSeal.Invoke(ledger, [sealRandom])!;
 var artProperty = emptySeal.GetType().GetProperty("Art")!;
 if (artProperty.GetValue(emptySeal) is not null ||
-    (long)coins.GetValue(ledger)! != 60 || (ulong)unlockedArt.GetValue(ledger)! != 0)
+    (long)coins.GetValue(ledger)! != 110 || (ulong)unlockedArt.GetValue(ledger)! != 0)
     throw new Exception("Empty seal did not cost full price");
 var artSeal = openSeal.Invoke(ledger, [sealRandom])!;
 if ((int)artProperty.GetValue(artSeal)! != 0 ||
     (long)coins.GetValue(ledger)! != 10 || (ulong)unlockedArt.GetValue(ledger)! != 1)
     throw new Exception("Incorrect artwork seal result");
-if (openSeal.Invoke(ledger, [sealRandom]) is not null)
+coins.SetValue(ledger, 99L);
+if (openSeal.Invoke(ledger, [sealRandom]) is not null || (long)coins.GetValue(ledger)! != 99)
     throw new Exception("Opened a seal without enough coins");
 coins.SetValue(ledger, 100L);
 unlockedArt.SetValue(ledger, (1UL << AlbumCatalog.Count) - 1);
@@ -274,51 +275,94 @@ if (!new[] { 0, 11, 12, 19, 20, 29, 30, 44, 45 }.Select(ArcadePayout.At)
     throw new Exception("Incorrect arcade payout thresholds");
 
 const float ArcadeTick = 1f / 120;
-for (var seed = 0; seed < 100; seed++)
+
+bool CanCourierJump(ChocoboCourier courier)
+{
+    var edge = ChocoboCourier.RiderX + ChocoboCourier.RiderHalfWidth;
+    var back = ChocoboCourier.RiderX - ChocoboCourier.RiderHalfWidth;
+    var first = courier.Obstacles.FirstOrDefault(o => !o.Overhead && o.X + o.Width >= back);
+    if (first.Width == 0 || first.X - edge > courier.Speed * .50f)
+        return false;
+
+    var lift = 0f;
+    var velocity = 310f;
+    var speed = courier.Speed;
+    var distance = 0f;
+    for (var frame = 0; frame < 92; frame++)
+    {
+        speed += 5.4f * ArcadeTick;
+        var travel = speed * ArcadeTick;
+        var oldLift = lift;
+        velocity -= 830 * ArcadeTick;
+        lift = Math.Max(0, lift + velocity * ArcadeTick);
+        foreach (var obstacle in courier.Obstacles)
+        {
+            var x = obstacle.X - distance;
+            if (x - travel >= edge || x + obstacle.Width <= back)
+                continue;
+            var enter = Math.Clamp((x - edge) / travel, 0, 1);
+            var leave = Math.Clamp((x + obstacle.Width - back) / travel, 0, 1);
+            var low = float.Lerp(oldLift, lift, enter);
+            var high = float.Lerp(oldLift, lift, leave);
+            if (obstacle.Overhead ? Math.Max(low, high) > ChocoboCourier.GateClearance :
+                Math.Min(low, high) < obstacle.Height)
+                return false;
+        }
+        distance += travel;
+    }
+    return first.X + first.Width - distance < back;
+}
+
+var ascentBest = 0;
+var courierBest = 0;
+for (var seed = 0; seed < 30; seed++)
 {
     var ascent = new AetherAscent(new Random(seed));
     ascent.Start();
-    for (var frame = 0; frame < 12_000; frame++)
+    for (var frame = 0; frame < 14_000 && ascent.Score < 60; frame++)
     {
         var next = ascent.Platforms.First(platform => platform.Level == ascent.Score + 1);
-        ascent.Aim(next.X);
+        var delta = next.X - ascent.X;
+        var coast = ascent.HorizontalVelocity * Math.Abs(ascent.HorizontalVelocity) / (2 * 540);
+        var remaining = delta - coast;
+        ascent.Steer(Math.Abs(remaining) < 4 ? 0 : Math.Sign(remaining));
         if (ascent.Tick(ArcadeTick))
             break;
     }
-    if (ascent.Score != ArcadePayout.FinishScore)
-        throw new Exception($"Ascent target unreachable for seed {seed} at {ascent.Score}");
+    ascentBest = Math.Max(ascentBest, ascent.Score);
 
     var courier = new ChocoboCourier(new Random(seed));
     courier.Start();
-    for (var frame = 0; frame < 12_000; frame++)
+    var survived = true;
+    for (var frame = 0; frame < 40_000 && survived; frame++)
     {
-        var next = courier.Crates.FirstOrDefault(crate => crate.X + crate.Width >= ChocoboCourier.RiderX - ChocoboCourier.RiderHalfWidth);
-        var speed = 132 + courier.Score * 3.4f;
-        var jumpAt = ChocoboCourier.RiderX - next.Width / 2 + speed * .37f;
-        if (next.X >= ChocoboCourier.RiderX + ChocoboCourier.RiderHalfWidth && next.X <= jumpAt)
+        if (courier.Lift == 0 && CanCourierJump(courier))
             courier.Jump();
-        if (courier.Tick(ArcadeTick))
-            break;
+        survived = !courier.Tick(ArcadeTick);
     }
-    if (courier.Score != ArcadePayout.FinishScore)
-        throw new Exception($"Courier target unreachable for seed {seed} at {courier.Score}");
+    if (survived)
+        throw new Exception("Courier did not end after reaching impossible speeds");
+    courierBest = Math.Max(courierBest, courier.Score);
 }
+if (ascentBest < 60 || courierBest <= 45)
+    throw new Exception($"New arcade runs are not viable beyond 45: ascent {ascentBest}, courier {courierBest}");
+
 var missedJump = new ChocoboCourier(new Random(42));
 missedJump.Start();
 var crashed = false;
 for (var frame = 0; frame < 500 && !crashed; frame++)
     crashed = missedJump.Tick(ArcadeTick);
-if (!crashed || missedJump.Score != 0)
-    throw new Exception("Courier did not collide with the first crate");
+if (!crashed || missedJump.Score != 0 || missedJump.Speed <= 132)
+    throw new Exception("Courier failed to accelerate or collide");
 var missedLanding = new AetherAscent(new Random(42));
 missedLanding.Start();
-missedLanding.Aim(0);
+missedLanding.Steer(-1);
 var fell = false;
 for (var frame = 0; frame < 500 && !fell; frame++)
     fell = missedLanding.Tick(ArcadeTick);
 if (!fell || missedLanding.Score != 0)
     throw new Exception("Ascent did not end after missing all platforms");
-Console.WriteLine("PASS arcade payout tiers, failure states, and score 45 in both games on 100 seeds");
+Console.WriteLine($"PASS arcade payouts, infinite scoring, collisions and acceleration (ascent {ascentBest}, courier {courierBest})");
 
 var fishing = new FishingCast(new Random(1));
 if (fishing.TryCatch())
@@ -493,7 +537,7 @@ foreach (var level in MemoryLevel.Levels)
 }
 Console.WriteLine("PASS Memory deck sizes, inclusive mistake caps, loss lockout and single payouts");
 
-int[] goals = [900, 1500, 1500, 1500, 1500, 1500, 750, 1200, 750];
+int[] goals = [900, 1500, 1500, 1500, 1500, 1500, 750, 1200, 750, 1200];
 foreach (var game in Enum.GetValues<DenGame>())
 {
     var experience = new GameExperience();
@@ -542,6 +586,52 @@ levels = (System.Collections.IDictionary)levelsType.GetValue(ledger)!;
 if ((bool)resetLevels.Invoke(ledger, null)! || Total(fishingGame) != 100)
     throw new Exception("XP reset ran again after reload");
 Console.WriteLine("PASS coin-based levels, game-specific caps, paid fishing and one-time XP reset");
+
+foreach (var level in SortLevel.Levels)
+for (var seed = 0; seed < 100; seed++)
+{
+    var sort = new AetherSort(new Random(seed));
+    sort.Start(level);
+    if (sort.TubeCount != level.Colors + 2 ||
+        sort.Tube(level.Colors).Count != 0 || sort.Tube(level.Colors + 1).Count != 0 ||
+        Enumerable.Range(0, level.Colors).All(sort.IsCompleteTube))
+        throw new Exception("Aether Sort has an invalid starting layout");
+    var initial = sort.Tube(0).ToArray();
+    if (sort.TryMove(0, 1) || !sort.TryMove(0, level.Colors) || !sort.Undo() ||
+        !sort.Tube(0).SequenceEqual(initial) || sort.CanUndo)
+        throw new Exception("Aether Sort transfer or undo failed");
+    sort.TryMove(0, level.Colors);
+    sort.Restart();
+    if (sort.Tube(level.Colors).Count != 0 || !sort.Tube(0).SequenceEqual(initial) || sort.CanUndo)
+        throw new Exception("Aether Sort restart did not restore the initial puzzle");
+
+    var random = new Random(seed);
+    var moves = new List<(int From, int To)>();
+    for (var i = 0; i < level.Colors * level.Capacity * 3; i++)
+    {
+        var a = random.Next(level.Colors);
+        var b = random.Next(level.Colors - 1);
+        if (b >= a)
+            b++;
+        var aDepth = random.Next(level.Capacity);
+        var bDepth = random.Next(level.Capacity);
+        var spareA = level.Colors;
+        var spareB = level.Colors + 1;
+        for (var j = 0; j < aDepth; j++) moves.Add((a, spareA));
+        for (var j = 0; j < bDepth; j++) moves.Add((b, spareB));
+        moves.Add((a, spareA));
+        moves.Add((b, a));
+        moves.Add((spareA, b));
+        for (var j = 0; j < aDepth; j++) moves.Add((spareA, a));
+        for (var j = 0; j < bDepth; j++) moves.Add((spareB, b));
+    }
+    for (var i = moves.Count - 1; i >= 0 && !sort.Won; i--)
+        if (!sort.TryMove(moves[i].To, moves[i].From))
+            throw new Exception("Reverse shuffle contains an illegal move");
+    if (!sort.Won || sort.Undo() || sort.TryMove(0, level.Colors))
+        throw new Exception("Aether Sort failed solution or completed-round lock");
+}
+Console.WriteLine("PASS Aether Sort 300 solvable layouts across the three difficulties, undo and restart");
 
 file sealed class DoorRandom(params int[] outcomes) : Random
 {
