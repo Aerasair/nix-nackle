@@ -18,7 +18,7 @@ internal sealed class RugSpa(Progress progress, NixArt art)
         var wasBusy = cycle.Busy;
         var elapsed = cycle.Advance(now);
         if (wasBusy && !cycle.Busy)
-            progress.FinishGame(DenGame.RugSpa);
+            progress.FinishGame(DenGame.RugSpa, spentCoins: RugCycle.Price);
         var clean = $"rug-{cycle.Rug + 1}.png";
         var dirty = $"rug-{cycle.Rug + 1}-dirty.png";
         var ready = art.IsReady(Workshop) & art.IsReady(Brush) & art.IsReady(clean) & art.IsReady(dirty);

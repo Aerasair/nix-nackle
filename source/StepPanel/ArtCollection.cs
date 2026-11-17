@@ -102,12 +102,19 @@ internal sealed class ArtCollection(Progress progress, ITextureProvider textures
         if (selected is { } selection && (art & (1UL << selection)) != 0)
         {
             if (ImGui.Button("Back to album"))
-                selected = null;
-            else
             {
-                ImGui.TextWrapped(AlbumCatalog.Title(selection));
-                DrawArt(selection, MathF.Min(ImGui.GetContentRegionAvail().X, 32 * unit));
+                selected = null;
+                return;
             }
+
+            ImGui.SameLine();
+            DrawAlbumArrow(art, selection, forward: false);
+            ImGui.SameLine();
+            DrawAlbumArrow(art, selection, forward: true);
+
+            var visible = selected ?? selection;
+            ImGui.TextWrapped(AlbumCatalog.Title(visible));
+            DrawArt(visible, MathF.Min(ImGui.GetContentRegionAvail().X, 32 * unit));
             return;
         }
 
@@ -134,6 +141,18 @@ internal sealed class ArtCollection(Progress progress, ITextureProvider textures
             if (clicked)
                 selected = i;
         }
+    }
+
+    private void DrawAlbumArrow(ulong unlocked, int index, bool forward)
+    {
+        var neighbor = AlbumCatalog.Neighbor(unlocked, index, forward);
+        var label = forward ? "Next unlocked print" : "Previous unlocked print";
+        ImGui.BeginDisabled(!neighbor.HasValue);
+        if (ImGui.ArrowButton(label, forward ? ImGuiDir.Right : ImGuiDir.Left))
+            selected = neighbor;
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(label);
+        ImGui.EndDisabled();
     }
 
     private void DrawArt(int index, float side)

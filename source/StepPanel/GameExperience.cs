@@ -19,12 +19,13 @@ public sealed class GameExperience
 {
     public int Total { get; set; }
 
-    internal bool RecordRound()
+    internal bool RecordCoins(DenGame game, int coins)
     {
-        if (Total >= GameLevels.MaxExperience)
+        var maximum = GameLevels.MaxExperience(game);
+        if (coins <= 0 || Total >= maximum)
             return false;
 
-        Total = Math.Min(Total + GameLevels.ExperiencePerRound, GameLevels.MaxExperience);
+        Total = (int)Math.Min(Total + (long)coins * GameLevels.ExperiencePerCoin, maximum);
         return true;
     }
 }
@@ -32,24 +33,32 @@ public sealed class GameExperience
 internal static class GameLevels
 {
     public const int MaxLevel = 110;
-    public const int RoundsToMax = 500;
-    public const int ExperiencePerRound = 100;
-    public const int MaxExperience = RoundsToMax * ExperiencePerRound;
+    public const int ExperiencePerCoin = 100;
 
-    public static int Threshold(int level)
+    public static int CoinGoal(DenGame game) => game switch
+    {
+        DenGame.TicTacToe => 900,
+        DenGame.Memory => 1_200,
+        DenGame.Fishing or DenGame.RugSpa => 750,
+        _ => 1_500,
+    };
+
+    public static int MaxExperience(DenGame game) => CoinGoal(game) * ExperiencePerCoin;
+
+    public static int Threshold(DenGame game, int level)
     {
         var levels = Math.Clamp(level, 1, MaxLevel) - 1;
         var steps = MaxLevel - 1;
-        const int firstLevelCost = 350;
-        var baseXp = firstLevelCost * levels;
-        var growth = MaxExperience - firstLevelCost * steps;
-        return baseXp + growth * levels * (levels - 1) / (steps * (steps - 1));
+        var linear = levels * (steps - 1);
+        var curved = levels * (levels - 1);
+        // Use the same gently increasing curve for each game's XP target.
+        return (int)((long)MaxExperience(game) * (3 * linear + curved) / (4 * steps * (steps - 1)));
     }
 
-    public static int Level(int experience)
+    public static int Level(DenGame game, int experience)
     {
         var level = 1;
-        while (level < MaxLevel && experience >= Threshold(level + 1))
+        while (level < MaxLevel && experience >= Threshold(game, level + 1))
             level++;
         return level;
     }

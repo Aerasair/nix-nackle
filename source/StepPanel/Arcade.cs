@@ -36,7 +36,7 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
         if (active)
         {
             if (ImGui.SmallButton("End run and collect earned payout"))
-                Finish(completed: false);
+                Finish();
         }
 
         ImGui.TextWrapped("Payouts: 12 = 3, 20 = 5, 30 = 7, 45 = 10 coins. The run ends at 45.");
@@ -54,15 +54,12 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
         lastFrame = -1;
     }
 
-    private void Finish(bool completed)
+    private void Finish()
     {
         active = false;
         var reward = ArcadePayout.At(Score);
         payout = reward;
-        if (completed)
-            progress.FinishGame(isCourier ? DenGame.ChocoboCourier : DenGame.AetherAscent, reward);
-        else
-            progress.ChangeCoins(reward);
+        progress.FinishGame(isCourier ? DenGame.ChocoboCourier : DenGame.AetherAscent, reward);
     }
 
     private void DrawField(float unit)
@@ -89,7 +86,7 @@ internal sealed class Arcade(Progress progress, NixArt artwork, bool isCourier)
             {
                 timeLeft -= TickSeconds;
                 if (isCourier ? courier.Tick(TickSeconds) : ascent.Tick(TickSeconds))
-                    Finish(completed: true);
+                    Finish();
             }
         }
         lastFrame = frame;

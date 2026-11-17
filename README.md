@@ -2,15 +2,16 @@
 
 Nix Nackle is a small **Final Fantasy XIV** plugin for Dalamud. It adds a movable step tracker and opens **Nix’s Den**, a backroom run by a suspicious Lalafell merchant. Dalamud lists the plugin as **Step Panel**.
 
-- **Daily steps and errands.** Earn Nackle Coins from a 10,000-step goal and optional quests using your character’s actions in FFXIV.
-- **Games for the duty queue.** Play Tic-Tac-Toe, Aetherlight, Shell Game, the Sil’dihn Labyrinth, Aether Ascent, Chocobo Courier, Fishing, or Memory. Each activity has its own level in the Profile tab.
-- **Spend coins.** Open a seal for a chance at an illustration, or set Nix’s brush to work in Rug Spa. The album contains 57 illustrations, including battle jobs, crafting jobs, and locations across Eorzea and beyond.
+- **Daily steps.** Earn 100 Nackle Coins for reaching 10,000 steps in a local calendar day.
+- **Games for the duty queue.** Play Tic-Tac-Toe, Aetherlight, Shell Game, the Sil’dihn Labyrinth, Aether Ascent, Chocobo Courier, Fishing, or Memory.
+- **Spend coins.** Open a seal for a chance at an illustration, or set Nix’s brush to work in Rug Spa. The album contains 57 illustrations. Use the arrows above an open print to move between unlocked illustrations.
+- **Profile.** Each minigame has a separate level up to 110. Earn 100 XP per coin won in that game. Rug Spa grants 100 XP per paid rug after cleaning finishes.
 
 [addon/](addon/) contains the ready-to-use plugin files. [source/](source/) contains the C# projects, artwork, and regression checks.
 
 ## Install in Dalamud
 
-The current build targets **Dalamud API 15**.
+Version **0.11.1** targets **Dalamud API 15**.
 
 1. Download this repository via **Code → Download ZIP**, then extract it to a folder you plan to keep. To share the plugin, send the whole `addon` folder.
 2. In FFXIV, run `/xlsettings` and open **Experimental → Dev Plugin Locations**.
@@ -21,6 +22,8 @@ The current build targets **Dalamud API 15**.
 Use `/steppanel` to toggle the step panel. Drag the panel by its title bar to move it. See the [Dalamud guide to loading local development plugins](https://dalamud.dev/faq/getting-started/#how-do-i-hot-reload-my-plugin).
 
 To update an existing installation, disable **Step Panel**, replace all three files in your existing addon folder, and enable it again. Close FFXIV first if Windows reports that the DLL is in use.
+
+Updating from a version older than 0.11.0 resets minigame XP once for the new leveling system. Your coin balance, unlocked illustrations, steps, and saved quest history carry over. Quests are currently paused.
 
 ## Build and review
 
@@ -36,6 +39,6 @@ dotnet run --project .\source\StepPanelChecks\StepPanelChecks.csproj -c Release 
 
 The DLL, manifest, and dependency manifest are written to `source\StepPanel\bin\Release\net10.0-windows`. You can point Dalamud at this DLL to run your own build.
 
-Start with [Plugin.cs](source/StepPanel/Plugin.cs) for the game-facing hooks and [Progress.cs](source/StepPanel/Progress.cs) for saved data. The plugin uses local character position and game state to estimate steps and track errands. A tell errand checks the outgoing message type. The code does not read or store message text or recipients, send messages, or make network requests. Coins, levels, and album unlocks are stored locally through Dalamud. The illustrations are embedded in the DLL.
+Start with [Plugin.cs](source/StepPanel/Plugin.cs) for the game-facing hooks and [Progress.cs](source/StepPanel/Progress.cs) for saved data. The plugin uses local character position and game state to estimate steps. Dalamud stores coins, levels, and album unlocks locally. The illustrations are embedded in the DLL.
 
 **Nix Nackle** is a community fan project for FFXIV. The source code is available under the [MIT License](LICENSE). FFXIV and its setting belong to Square Enix.

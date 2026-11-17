@@ -2,11 +2,8 @@ using System;
 using System.Numerics;
 using System.Threading;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Game.Chat;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Command;
-using Dalamud.Game.Text;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
@@ -22,19 +19,12 @@ public sealed class Plugin : IDalamudPlugin
     private readonly IClientState clientState;
     private readonly IObjectTable objects;
     private readonly ICondition condition;
-    private readonly IChatGui chat;
     private readonly Backroom backroom;
     private readonly Progress progress;
-    private readonly ErrandView errands;
     private readonly StepCounter counter = new();
     private volatile bool isVisible = true;
     private int resetRequested;
     private int observedDay = -1;
-    private bool wasEmoting;
-    private long nextLandmarkScan;
-    private uint landmarkTerritory;
-    private bool landmarkAvailable;
-    private bool landmarkReached;
 
     public Plugin(
         IDalamudPluginInterface pluginInterface,
@@ -44,8 +34,7 @@ public sealed class Plugin : IDalamudPlugin
         IObjectTable objects,
         ICondition condition,
         ITextureProvider textures,
-        IPluginLog log,
-        IChatGui chat)
+        IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
         this.framework = framework;
@@ -53,17 +42,14 @@ public sealed class Plugin : IDalamudPlugin
         this.clientState = clientState;
         this.objects = objects;
         this.condition = condition;
-        this.chat = chat;
         progress = new Progress(pluginInterface, log);
-        errands = new ErrandView(progress);
-        backroom = new Backroom(progress, textures, errands);
+        backroom = new Backroom(progress, textures);
 
         commands.AddHandler(Command, new CommandInfo(OnCommand)
         {
             HelpMessage = "Toggle the step panel. Use /steppanel reset to clear session steps or /steppanel den to open the games.",
         });
         framework.Update += OnUpdate;
-        chat.ChatMessage += OnChatMessage;
         pluginInterface.UiBuilder.Draw += Draw;
         pluginInterface.UiBuilder.OpenMainUi += OpenMainUi;
     }
@@ -73,7 +59,6 @@ public sealed class Plugin : IDalamudPlugin
         pluginInterface.UiBuilder.OpenMainUi -= OpenMainUi;
         pluginInterface.UiBuilder.Draw -= Draw;
         framework.Update -= OnUpdate;
-        chat.ChatMessage -= OnChatMessage;
         commands.RemoveHandler(Command);
         progress.Save();
     }
@@ -123,61 +108,7 @@ public sealed class Plugin : IDalamudPlugin
             steps = counter.Steps - before;
         }
 
-        var emoting = condition[ConditionFlag.Emoting];
-        if (player is not null && CanDoErrands())
-        {
-            ScanLandmarks(player.Position, territory);
-            progress.TrackErrands(Math.Clamp(seconds, 0, 1), steps, emoting && !wasEmoting,
-                landmarkAvailable, landmarkReached);
-        }
-        else
-        {
-            nextLandmarkScan = 0;
-        }
-        wasEmoting = emoting;
         progress.TrackSteps(day, steps);
-    }
-
-    private void OnChatMessage(IHandleableChatMessage message)
-    {
-        if (message.LogKind == XivChatType.TellOutgoing && CanDoErrands())
-            progress.TrackErrands(0, 0, false, false, false, sentTell: true);
-    }
-
-    private bool CanDoErrands() =>
-        clientState.IsLoggedIn && !clientState.IsGPosing &&
-        !condition[ConditionFlag.BoundByDuty] && !condition[ConditionFlag.BoundByDuty56] &&
-        !condition[ConditionFlag.BoundByDuty95] && !condition[ConditionFlag.BetweenAreas] &&
-        !condition[ConditionFlag.BetweenAreas51] && !condition[ConditionFlag.OccupiedInCutSceneEvent] &&
-        !condition[ConditionFlag.WatchingCutscene] && !condition[ConditionFlag.WatchingCutscene78];
-
-    private void ScanLandmarks(Vector3 position, uint territory)
-    {
-        var now = Environment.TickCount64;
-        if (territory == landmarkTerritory && now < nextLandmarkScan)
-            return;
-
-        landmarkTerritory = territory;
-        nextLandmarkScan = now + 750;
-        landmarkAvailable = landmarkReached = false;
-        foreach (var obj in (System.Collections.Generic.IEnumerable<Dalamud.Game.ClientState.Objects.Types.IGameObject>)objects)
-        {
-            var distance = Vector3.DistanceSquared(obj.Position, position);
-            if (distance > 110 * 110)
-                continue;
-
-            if (obj.ObjectKind != ObjectKind.Aetheryte &&
-                (obj.ObjectKind != ObjectKind.EventObj ||
-                 obj.Name.TextValue is not ("Market Board" or "Market board" or "Tableau des ventes" or "Marktbrett" or "マーケットボード")))
-                continue;
-
-            if (distance <= 7 * 7)
-                landmarkReached = true;
-            else if (distance >= 10 * 10)
-                landmarkAvailable = true;
-            if (landmarkReached && landmarkAvailable)
-                break;
-        }
     }
 
     private bool IsMovementExcluded() =>
@@ -217,8 +148,6 @@ public sealed class Plugin : IDalamudPlugin
         ImGui.SetNextWindowPos(viewport.WorkPos + new Vector2(40, 160), ImGuiCond.FirstUseEver);
         ImGui.SetNextWindowBgAlpha(0.88f);
         var expanded = ImGui.Begin("Steps###StepPanel", flags);
-        var anchor = ImGui.GetWindowPos();
-        var panelSize = ImGui.GetWindowSize();
         if (expanded)
         {
             var today = progress.Snapshot().Steps;
@@ -232,7 +161,5 @@ public sealed class Plugin : IDalamudPlugin
                 backroom.Open();
         }
         ImGui.End();
-        if (expanded && errands.DrawAlert(anchor, panelSize, CanDoErrands()))
-            backroom.OpenQuests();
     }
 }

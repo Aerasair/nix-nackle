@@ -20,19 +20,21 @@ public sealed class CoinLedger : IPluginConfiguration
 
     internal bool ApplyGameLevelReset()
     {
-        if (GameLevelsRevision >= 1)
+        if (GameLevelsRevision >= 2)
             return false;
 
         GameLevels.Clear();
-        GameLevelsRevision = 1;
+        GameLevelsRevision = 2;
         return true;
     }
 
-    internal bool RecordRound(DenGame game)
+    internal bool RecordGameCoins(DenGame game, int coins)
     {
+        if (coins <= 0)
+            return false;
         if (!GameLevels.TryGetValue(game, out var experience))
             GameLevels[game] = experience = new GameExperience();
-        return experience.RecordRound();
+        return experience.RecordCoins(game, coins);
     }
 
     internal bool AddSteps(int day, long steps)
@@ -60,6 +62,7 @@ public sealed class CoinLedger : IPluginConfiguration
         {
             DailyFishingCoins[day] = earned + reward;
             ChangeCoins(reward);
+            RecordGameCoins(DenGame.Fishing, reward);
         }
         return reward;
     }
@@ -164,11 +167,11 @@ internal sealed class Progress
             return ledger.GameLevels.TryGetValue(game, out var experience) ? experience.Total : 0;
     }
 
-    public void FinishGame(DenGame game, int coins = 0)
+    public void FinishGame(DenGame game, int coins = 0, int spentCoins = 0)
     {
         lock (gate)
         {
-            var gainedExperience = ledger.RecordRound(game);
+            var gainedExperience = ledger.RecordGameCoins(game, coins + spentCoins);
             if (coins == 0 && !gainedExperience)
                 return;
             ledger.ChangeCoins(coins);
@@ -229,8 +232,7 @@ internal sealed class Progress
         {
             var day = LocalDay;
             var reward = ledger.RewardFishing(day, coins);
-            var gainedExperience = ledger.RecordRound(DenGame.Fishing);
-            if (reward > 0 || gainedExperience)
+            if (reward > 0)
             {
                 dirty = true;
                 SaveLocked();

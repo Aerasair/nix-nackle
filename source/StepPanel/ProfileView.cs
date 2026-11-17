@@ -24,10 +24,10 @@ internal static class ProfileView
     private static void DrawGame(Progress progress, DenGame game, string name)
     {
         var experience = progress.GetGameExperience(game);
-        var level = GameLevels.Level(experience);
+        var level = GameLevels.Level(game, experience);
         ImGui.TextUnformatted($"{name}  ·  Lv. {level}");
-        var start = GameLevels.Threshold(level);
-        var next = GameLevels.Threshold(level + 1);
+        var start = GameLevels.Threshold(game, level);
+        var next = GameLevels.Threshold(game, level + 1);
         var atMax = level == GameLevels.MaxLevel;
         ImGui.ProgressBar(atMax ? 1f : (experience - start) / (float)(next - start), new Vector2(-1, 0),
             atMax ? "MAX" : $"{experience - start} / {next - start} XP");

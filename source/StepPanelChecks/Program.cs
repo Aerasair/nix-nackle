@@ -217,6 +217,13 @@ Console.WriteLine("PASS legacy balance, daily threshold, local date rollover and
 
 var pickArt = progressType.GetMethod("PickLockedArt", BindingFlags.Static | BindingFlags.NonPublic)!;
 var titles = Enumerable.Range(0, AlbumCatalog.Count).Select(AlbumCatalog.Title).ToArray();
+const ulong sparseAlbum = (1UL << 2) | (1UL << 31) | (1UL << 56);
+if (AlbumCatalog.Neighbor(sparseAlbum, 2, forward: true) != 31 ||
+    AlbumCatalog.Neighbor(sparseAlbum, 31, forward: true) != 56 ||
+    AlbumCatalog.Neighbor(sparseAlbum, 31, forward: false) != 2 ||
+    AlbumCatalog.Neighbor(sparseAlbum, 2, forward: false) is not null ||
+    AlbumCatalog.Neighbor(sparseAlbum, 56, forward: true) is not null)
+    throw new Exception("Album arrows must skip locked prints and stop at the ends");
 if (titles.Distinct().Count() != AlbumCatalog.Count || titles.Any(title => title.StartsWith("Print ")))
     throw new Exception("Missing title or duplicate album title");
 ulong unlocked = 0;
@@ -486,49 +493,55 @@ foreach (var level in MemoryLevel.Levels)
 }
 Console.WriteLine("PASS Memory deck sizes, inclusive mistake caps, loss lockout and single payouts");
 
-var experience = new GameExperience();
-if (GameLevels.Level(0) != 1 || GameLevels.Threshold(110) != 50_000)
-    throw new Exception("Wrong progression endpoints");
-for (var level = 2; level <= GameLevels.MaxLevel; level++)
+int[] goals = [900, 1500, 1500, 1500, 1500, 1500, 750, 1200, 750];
+foreach (var game in Enum.GetValues<DenGame>())
 {
-    var threshold = GameLevels.Threshold(level);
-    if (GameLevels.Level(threshold) != level || GameLevels.Level(threshold - 1) != level - 1)
-        throw new Exception("Game XP level threshold failed");
+    var experience = new GameExperience();
+    var goal = goals[(int)game];
+    if (GameLevels.Level(game, 0) != 1 || GameLevels.Threshold(game, 110) != goal * 100 ||
+        experience.RecordCoins(game, 0) || !experience.RecordCoins(game, goal - 1) ||
+        GameLevels.Level(game, experience.Total) >= 110)
+        throw new Exception($"Wrong progression endpoints for {game}");
+    for (var level = 2; level <= GameLevels.MaxLevel; level++)
+    {
+        var threshold = GameLevels.Threshold(game, level);
+        if (GameLevels.Level(game, threshold) != level || GameLevels.Level(game, threshold - 1) != level - 1)
+            throw new Exception($"Game XP level threshold failed for {game}");
+    }
+    if (!experience.RecordCoins(game, 7) || experience.Total != goal * 100 ||
+        GameLevels.Level(game, experience.Total) != 110 || experience.RecordCoins(game, 1))
+        throw new Exception($"Wrong progression cap for {game}");
 }
-for (var round = 1; round <= 500; round++)
-{
-    if (!experience.RecordRound() ||
-        (GameLevels.Level(experience.Total) == GameLevels.MaxLevel) != (round == 500))
-        throw new Exception("Unlimited rounds or level 110 threshold failed");
-}
-if (experience.RecordRound())
-    throw new Exception("A maxed minigame still received experience");
 
 var levelsType = ledgerType.GetProperty("GameLevels")!;
-var recordRound = ledgerType.GetMethod("RecordRound", BindingFlags.Instance | BindingFlags.NonPublic)!;
+var recordCoins = ledgerType.GetMethod("RecordGameCoins", BindingFlags.Instance | BindingFlags.NonPublic)!;
 var gameType = assembly.GetType("StepPanel.DenGame", throwOnError: true)!;
 var fishingGame = Enum.Parse(gameType, "Fishing");
 var vaultGame = Enum.Parse(gameType, "Vault");
-recordRound.Invoke(ledger, [fishingGame]);
-recordRound.Invoke(ledger, [fishingGame]);
-recordRound.Invoke(ledger, [vaultGame]);
-ledger = JsonSerializer.Deserialize(JsonSerializer.Serialize(ledger, ledgerType), ledgerType)!;
+var rugGame = Enum.Parse(gameType, "RugSpa");
 var levels = (System.Collections.IDictionary)levelsType.GetValue(ledger)!;
 int Total(object game) => (int)levels[game]!.GetType().GetProperty("Total")!.GetValue(levels[game])!;
-if (Total(fishingGame) != 200 || Total(vaultGame) != 100)
+if (Total(fishingGame) != 2_200)
+    throw new Exception("Fishing XP must count only coins paid, including at the daily cap");
+recordCoins.Invoke(ledger, [vaultGame, 5]);
+recordCoins.Invoke(ledger, [rugGame, 1]);
+ledger = JsonSerializer.Deserialize(JsonSerializer.Serialize(ledger, ledgerType), ledgerType)!;
+levels = (System.Collections.IDictionary)levelsType.GetValue(ledger)!;
+if (Total(fishingGame) != 2_200 || Total(vaultGame) != 500 || Total(rugGame) != 100)
     throw new Exception("Independent minigame experience did not survive reload");
 var resetLevels = ledgerType.GetMethod("ApplyGameLevelReset", BindingFlags.Instance | BindingFlags.NonPublic)!;
+ledgerType.GetProperty("GameLevelsRevision")!.SetValue(ledger, 1);
 var balanceBeforeReset = (long)coins.GetValue(ledger)!;
 var artBeforeReset = (ulong)unlockedArt.GetValue(ledger)!;
 if (!(bool)resetLevels.Invoke(ledger, null)! || levels.Count != 0 ||
     (long)coins.GetValue(ledger)! != balanceBeforeReset || (ulong)unlockedArt.GetValue(ledger)! != artBeforeReset)
     throw new Exception("XP reset failed or modified unrelated progress");
-recordRound.Invoke(ledger, [fishingGame]);
+recordCoins.Invoke(ledger, [fishingGame, 1]);
 ledger = JsonSerializer.Deserialize(JsonSerializer.Serialize(ledger, ledgerType), ledgerType)!;
 levels = (System.Collections.IDictionary)levelsType.GetValue(ledger)!;
 if ((bool)resetLevels.Invoke(ledger, null)! || Total(fishingGame) != 100)
     throw new Exception("XP reset ran again after reload");
-Console.WriteLine("PASS 500-round progression, independent profiles and one-time XP reset");
+Console.WriteLine("PASS coin-based levels, game-specific caps, paid fishing and one-time XP reset");
 
 file sealed class DoorRandom(params int[] outcomes) : Random
 {

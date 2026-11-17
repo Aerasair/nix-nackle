@@ -22,4 +22,14 @@ internal static class AlbumCatalog
     ];
 
     public static string Title(int index) => Titles[index];
+
+    public static int? Neighbor(ulong unlocked, int index, bool forward)
+    {
+        var direction = forward ? 1 : -1;
+        for (var i = index + direction; i >= 0 && i < Count; i += direction)
+            if ((unlocked & (1UL << i)) != 0)
+                return i;
+
+        return null;
+    }
 }

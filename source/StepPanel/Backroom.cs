@@ -31,18 +31,16 @@ internal sealed class Backroom
     private readonly ShellGame shellGame;
     private readonly MemoryCards memory;
     private readonly RugSpa rugSpa;
-    private readonly ErrandView errands;
     private volatile bool openRequested;
     private bool isOpen;
     private int selectedTab;
     private static readonly string[] Tabs =
-        ["Profile", "Gacha", "Quests", "Tic-Tac-Toe", "Aetherlight", "Shell Game", "Vault", "Aether Ascent", "Chocobo Courier", "Fishing", "Memory", "Rug Spa"];
+        ["Profile", "Gacha", "Tic-Tac-Toe", "Aetherlight", "Shell Game", "Vault", "Aether Ascent", "Chocobo Courier", "Fishing", "Memory", "Rug Spa"];
 
-    public Backroom(Progress progress, ITextureProvider textures, ErrandView errands)
+    public Backroom(Progress progress, ITextureProvider textures)
     {
         this.progress = progress;
         this.textures = textures;
-        this.errands = errands;
         artwork = new NixArt(textures);
         vault = new VaultMazeView(progress, artwork);
         collection = new ArtCollection(progress, textures);
@@ -55,12 +53,6 @@ internal sealed class Backroom
     }
 
     public void Open() => openRequested = true;
-
-    public void OpenQuests()
-    {
-        selectedTab = 2;
-        Open();
-    }
 
     public void Draw()
     {
@@ -114,7 +106,7 @@ internal sealed class Backroom
         for (var tab = 0; tab < Tabs.Length; tab++)
         {
             var width = MathF.Min(available, MathF.Ceiling(ImGui.CalcTextSize(Tabs[tab]).X + padding));
-            if (tab == 9)
+            if (tab == 8)
                 rowWidth = 0;
             if (rowWidth > 0 && rowWidth + gap + width <= available)
             {
@@ -142,16 +134,15 @@ internal sealed class Backroom
         {
             case 0: ProfileView.Draw(progress); break;
             case 1: collection.DrawGacha(unit); break;
-            case 2: errands.Draw(); break;
-            case 3: DrawTicTacToe(unit); break;
-            case 4: DrawAetherlight(unit); break;
-            case 5: shellGame.Draw(unit); break;
-            case 6: vault.Draw(unit); break;
-            case 7: ascent.Draw(unit); break;
-            case 8: courier.Draw(unit); break;
-            case 9: fishing.Draw(unit); break;
-            case 10: memory.Draw(unit); break;
-            case 11: rugSpa.Draw(unit); break;
+            case 2: DrawTicTacToe(unit); break;
+            case 3: DrawAetherlight(unit); break;
+            case 4: shellGame.Draw(unit); break;
+            case 5: vault.Draw(unit); break;
+            case 6: ascent.Draw(unit); break;
+            case 7: courier.Draw(unit); break;
+            case 8: fishing.Draw(unit); break;
+            case 9: memory.Draw(unit); break;
+            case 10: rugSpa.Draw(unit); break;
         }
     }
 
