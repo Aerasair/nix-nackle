@@ -132,7 +132,7 @@ internal sealed class Backroom
         ImGui.Spacing();
         switch (selectedTab)
         {
-            case 0: ProfileView.Draw(progress); break;
+            case 0: ProfileView.Draw(progress, artwork); break;
             case 1: collection.DrawGacha(unit); break;
             case 2: DrawTicTacToe(unit); break;
             case 3: DrawAetherlight(unit); break;

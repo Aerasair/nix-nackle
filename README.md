@@ -11,7 +11,7 @@ Nix Nackle is a small **Final Fantasy XIV** plugin for Dalamud. It adds a movabl
 
 ## Install in Dalamud
 
-Version **0.11.1** targets **Dalamud API 15**.
+Version **0.11.2** targets **Dalamud API 15**.
 
 1. Download this repository via **Code → Download ZIP**, then extract it to a folder you plan to keep. To share the plugin, send the whole `addon` folder.
 2. In FFXIV, run `/xlsettings` and open **Experimental → Dev Plugin Locations**.
